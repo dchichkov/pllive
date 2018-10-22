@@ -1,0 +1,135 @@
+#include <graphics.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <mem.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include<dos.h>
+
+unsigned   SEG_BUF,OFF_BUF;
+extern void ALLPL(void);
+extern void ALLPP(void);
+void rewin(void);
+void swiitch(int,int,int);
+void strelka(void);
+void och(void);
+void livese(void);
+main()
+{
+union REGS r;
+int     grdr = EGA;
+int     grmod = ATT400C0;
+initgraph(&grdr, &grmod,"");
+cleardevice();
+setbkcolor(0);
+setfillstyle(1,WHITE);
+setcolor(WHITE);
+r.x.ax=0xd;
+int86(0x10,&r,&r);
+
+r.x.ax=4;
+int86(0x33,&r,&r);
+
+r.x.ax=1;
+int86(0x33,&r,&r);
+strelka();
+closegraph();
+}
+
+void strelka(void)
+{
+int a,l,x,y,h,lh=1;
+union REGS r;
+x=0;y=0;h=20;
+
+
+r.x.ax=4;
+r.x.cx=0;
+r.x.dx=0;
+int86(0x33,&r,&r);
+
+while(1)
+ {
+	r.x.ax=15;
+	r.x.cx=700/h;
+	r.x.dx=900/h;
+	int86(0x33,&r,&r);
+
+	r.x.ax=3;
+	int86(0x33,&r,&r);
+	x=r.x.cx;
+	y=r.x.dx;
+	if(r.x.bx==2)  {if(h<700) h++;delay(20);}
+	if(r.x.bx==4)  {if(h>1)    h--;delay(20);}
+	if(r.x.bx==1)  {lh=!lh;delay(100);}
+	if((y==0)&&(x==0))  x=0;/*cal();*/
+ if(kbhit()!=0)
+	{
+	l=getch();
+	if(l==27) return;
+	swiitch(l,x,y);
+	}
+ }
+}
+
+
+void och(void)
+{
+int y;
+int c;
+c=getcolor();
+setcolor(0);
+for(y=0;y<100;y++)
+ line(0,y,640,y);
+setcolor(c);
+}
+
+
+
+
+void swiitch(int bb,int x,int y)
+{
+union REGS r;
+r.x.ax=4;
+r.x.cx=350;
+r.x.dx=200;
+int86(0x33,&r,&r);
+ switch(bb)
+          {
+          case 32 :
+	   r.x.ax=0x0c0d;
+	   r.h.bl=0;
+	   r.x.cx=x;
+	   r.x.dx=y;
+	   int86(0x10,&r,&r);
+	   break;
+          case 59 : och();
+          case 72 :if(y>0) y--;  break;
+          case 80 :if(y<200) y++;break;
+          case 75 :if(x>0) x--;  break;
+          case 77 :if(x<350) x++;break;
+          case 13 :livese();break;
+          default:break;
+          }
+r.x.ax=4;
+r.x.cx=x;
+r.x.dx=y;
+int86(0x33,&r,&r);
+}
+
+void livese(void)
+{
+long a;
+char far *bufer;
+bufer=malloc(64000);
+if(bufer==0) {closegraph();exit(0);}
+SEG_BUF=FP_SEG(bufer);
+OFF_BUF=FP_OFF(bufer);
+setmem(bufer,64000,0);
+while(!kbhit())
+ {
+  ALLPL();
+  ALLPP();
+ }
+free(bufer);
+}
